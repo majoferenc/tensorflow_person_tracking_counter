@@ -17,12 +17,8 @@ class PersonDetector(object):
 
         os.chdir(cwd)
 
-        detect_model_name = 'ssd_mobilenet_v2'
-
-        PATH_TO_CKPT = detect_model_name + '/frozen_inference_graph.pb'
-
+        PATH_TO_CKPT = '../ssd_mobilenet_v2/frozen_inference_graph.pb'
         self.detection_graph = tf.Graph()
-
         with self.detection_graph.as_default():
             od_graph_def = tf.compat.v1.GraphDef()
             with tf.io.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:

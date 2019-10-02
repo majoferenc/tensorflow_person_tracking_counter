@@ -5,7 +5,6 @@ The functions do not return a value, instead they modify the image itself.
 
 """
 
-# Imports
 import collections
 import functools
 import matplotlib.pyplot as plt
@@ -16,12 +15,11 @@ import PIL.ImageDraw as ImageDraw
 import PIL.ImageFont as ImageFont
 import six
 import tensorflow as tf
-import cv2
 import numpy
 import os
 
 # Variables
-is_vehicle_detected = [0]
+is_person_detected = [0]
 ROI_POSITION = [0]
 DEVIATION = [0]
 is_color_recognition_enable = [0]
@@ -115,15 +113,15 @@ def draw_bounding_box_on_image_array(current_frame_number, image,
         coordinates as absolute.
     """
     image_pil = Image.fromarray(np.uint8(image)).convert('RGB')
-    is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image(current_frame_number, image_pil, ymin, xmin,
+    is_person_detected, csv_line, update_csv = draw_bounding_box_on_image(current_frame_number, image_pil, ymin, xmin,
                                                                            ymax, xmax, color,
                                                                            thickness, display_str_list,
                                                                            use_normalized_coordinates)
     np.copyto(image, np.array(image_pil))
-    return is_vehicle_detected, csv_line, update_csv
+    return is_person_detected, csv_line, update_csv
 
 is_person_detected = [0]
-bottom_position_of_detected_vehicle = [0]
+bottom_position_of_detected_person = [0]
 
 def count_objects_x_axis(top, bottom, right, left, crop_img, roi_position, y_min, y_max, deviation):
         direction = "n.a." # means not available, it is just initialization
@@ -133,12 +131,12 @@ def count_objects_x_axis(top, bottom, right, left, crop_img, roi_position, y_min
         if (abs(((right+left)/2)-roi_position) < deviation):
           is_person_detected.insert(0, 1)
           update_csv = True
-        if(bottom > bottom_position_of_detected_vehicle[0]):
+        if(bottom > bottom_position_of_detected_person[0]):
                 direction = "down"
         else:
                 direction = "up"
 
-        bottom_position_of_detected_vehicle.insert(0,(bottom))
+        bottom_position_of_detected_person.insert(0,(bottom))
 
         return direction, is_person_detected, update_csv
 
@@ -156,8 +154,8 @@ def crop_center(img, cropx, cropy):  # to crop and get the center of the given i
 	return img[starty:starty + cropy, startx:startx + cropx]
 
 
-is_vehicle_detected = [0]
-bottom_position_of_detected_vehicle = [0]
+is_person_detected = [0]
+bottom_position_of_detected_person = [0]
 
 def count_objects(top, bottom, right, left, crop_img, roi_position, y_min, y_max, deviation):
         direction = "n.a." # means not available, it is just initialization
@@ -165,16 +163,16 @@ def count_objects(top, bottom, right, left, crop_img, roi_position, y_min, y_max
         update_csv = False
 
         if (abs(((bottom+top)/2)-roi_position) < deviation):
-          is_vehicle_detected.insert(0,1)
+          is_person_detected.insert(0,1)
           update_csv = True
-        if(bottom > bottom_position_of_detected_vehicle[0]):
+        if(bottom > bottom_position_of_detected_person[0]):
                 direction = "down"
         else:
                 direction = "up"
 
-        bottom_position_of_detected_vehicle.insert(0,(bottom))
+        bottom_position_of_detected_person.insert(0,(bottom))
 
-        return direction, is_vehicle_detected, update_csv
+        return direction, is_person_detected, update_csv
 
 
 
@@ -208,9 +206,9 @@ def draw_bounding_box_on_image(current_frame_number, image,
         ymin, xmin, ymax, xmax as relative to the image.  Otherwise treat
         coordinates as absolute.
     """
-    csv_line = ""  # to create new csv line consists of vehicle type, predicted_speed, color and predicted_direction
-    update_csv = False  # update csv for a new vehicle that are passed from ROI - just one new line for each vehicles
-    is_vehicle_detected = [0]
+    csv_line = ""  # to create new csv line consists of person type, predicted_speed, color and predicted_direction
+    update_csv = False  # update csv for a new person that are passed from ROI - just one new line for each persons
+    is_person_detected = [0]
     draw = ImageDraw.Draw(image)
     im_width, im_height = image.size
     if use_normalized_coordinates:
@@ -224,13 +222,13 @@ def draw_bounding_box_on_image(current_frame_number, image,
     predicted_direction = "n.a."  # means not available, it is just initialization
 
     image_temp = numpy.array(image)
-    detected_vehicle_image = image_temp[int(top):int(bottom), int(left):int(right)]
+    detected_person_image = image_temp[int(top):int(bottom), int(left):int(right)]
 
-    '''if(bottom > ROI_POSITION): # if the vehicle get in ROI area, vehicle predicted_speed predicted_color algorithms are called - 200 is an arbitrary value, for my case it looks very well to set position of ROI line at y pixel 200'''
+    '''if(bottom > ROI_POSITION): # if the person get in ROI area, person predicted_speed predicted_color algorithms are called - 200 is an arbitrary value, for my case it looks very well to set position of ROI line at y pixel 200'''
     if (x_axis[0] == 1):
-        predicted_direction, is_vehicle_detected, update_csv = count_objects_x_axis(top, bottom,
+        predicted_direction, is_person_detected, update_csv = count_objects_x_axis(top, bottom,
                                                                                                           right, left,
-                                                                                                          detected_vehicle_image,
+                                                                                                          detected_person_image,
                                                                                                           ROI_POSITION[
                                                                                                               0],
                                                                                                           ROI_POSITION[
@@ -242,8 +240,8 @@ def draw_bounding_box_on_image(current_frame_number, image,
                                                                                                                           0] * 2),
                                                                                                           DEVIATION[0])
     elif (mode_number[0] == 2):
-        predicted_direction, is_vehicle_detected, update_csv = count_objects(top, bottom, right, left,
-                                                                                            detected_vehicle_image,
+        predicted_direction, is_person_detected, update_csv = count_objects(top, bottom, right, left,
+                                                                                            detected_person_image,
                                                                                             ROI_POSITION[0],
                                                                                             ROI_POSITION[0] + DEVIATION[
                                                                                                 0], ROI_POSITION[0] + (
@@ -282,7 +280,7 @@ def draw_bounding_box_on_image(current_frame_number, image,
             fill='black',
             font=font)
         text_bottom -= text_height - 2 * margin
-        return is_vehicle_detected, csv_line, update_csv
+        return is_person_detected, csv_line, update_csv
 
 
 def draw_bounding_boxes_on_image_array(image,
@@ -546,7 +544,7 @@ def visualize_boxes_and_labels_on_image_array(current_frame_number,
     counter = 0
     ROI_POSITION.insert(0, y_reference)
     DEVIATION.insert(0, deviation)
-    is_vehicle_detected = []
+    is_person_detected = []
     mode_number.insert(0, mode)
     is_color_recognition_enable.insert(0, color_recognition_status)
     box_to_display_str_map = collections.defaultdict(list)
@@ -605,7 +603,7 @@ def visualize_boxes_and_labels_on_image_array(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -629,7 +627,7 @@ def visualize_boxes_and_labels_on_image_array(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -649,10 +647,10 @@ def visualize_boxes_and_labels_on_image_array(current_frame_number,
                     radius=line_thickness / 2,
                     use_normalized_coordinates=use_normalized_coordinates)
 
-    if (1 in is_vehicle_detected):
+    if (1 in is_person_detected):
         counter = 1
-        del is_vehicle_detected[:]
-        is_vehicle_detected = []
+        del is_person_detected[:]
+        is_person_detected = []
         csv_line_util = class_name + "," + csv_line
 
     if (mode == 1):
@@ -726,7 +724,7 @@ def visualize_boxes_and_labels_on_image_array_x_axis(current_frame_number,
     ROI_POSITION.insert(0, x_reference)
     DEVIATION.insert(0, deviation)
     x_axis.insert(0, 1)
-    is_vehicle_detected = []
+    is_person_detected = []
     mode_number.insert(0, mode)
     is_color_recognition_enable.insert(0, color_recognition_status)
     box_to_display_str_map = collections.defaultdict(list)
@@ -785,7 +783,7 @@ def visualize_boxes_and_labels_on_image_array_x_axis(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -809,7 +807,7 @@ def visualize_boxes_and_labels_on_image_array_x_axis(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -829,10 +827,10 @@ def visualize_boxes_and_labels_on_image_array_x_axis(current_frame_number,
                     radius=line_thickness / 2,
                     use_normalized_coordinates=use_normalized_coordinates)
 
-    if (1 in is_vehicle_detected):
+    if (1 in is_person_detected):
         counter = 1
-        del is_vehicle_detected[:]
-        is_vehicle_detected = []
+        del is_person_detected[:]
+        is_person_detected = []
         csv_line_util = class_name + "," + csv_line
 
     if (mode == 1):
@@ -906,7 +904,7 @@ def visualize_boxes_and_labels_on_image_array_y_axis(current_frame_number,
     counter = 0
     ROI_POSITION.insert(0, y_reference)
     DEVIATION.insert(0, deviation)
-    is_vehicle_detected = []
+    is_person_detected = []
     mode_number.insert(0, mode)
     is_color_recognition_enable.insert(0, color_recognition_status)
     box_to_display_str_map = collections.defaultdict(list)
@@ -965,7 +963,7 @@ def visualize_boxes_and_labels_on_image_array_y_axis(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -989,7 +987,7 @@ def visualize_boxes_and_labels_on_image_array_y_axis(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -1009,10 +1007,10 @@ def visualize_boxes_and_labels_on_image_array_y_axis(current_frame_number,
                     radius=line_thickness / 2,
                     use_normalized_coordinates=use_normalized_coordinates)
 
-    if (1 in is_vehicle_detected):
+    if (1 in is_person_detected):
         counter = 1
-        del is_vehicle_detected[:]
-        is_vehicle_detected = []
+        del is_person_detected[:]
+        is_person_detected = []
         csv_line_util = class_name + "," + csv_line
 
     if (mode == 2):
@@ -1086,7 +1084,7 @@ def visualize_boxes_and_labels_on_single_image_array(current_frame_number,
     counter = 0
     ROI_POSITION.insert(0, y_reference)
     DEVIATION.insert(0, deviation)
-    is_vehicle_detected = []
+    is_person_detected = []
     mode_number.insert(0, mode)
     is_color_recognition_enable.insert(0, color_recognition_status)
     box_to_display_str_map = collections.defaultdict(list)
@@ -1145,7 +1143,7 @@ def visualize_boxes_and_labels_on_single_image_array(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -1169,7 +1167,7 @@ def visualize_boxes_and_labels_on_single_image_array(current_frame_number,
             if instance_masks is not None:
                 draw_mask_on_image_array(image, box_to_instance_masks_map[box], color=color)
 
-            is_vehicle_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
+            is_person_detected, csv_line, update_csv = draw_bounding_box_on_image_array(current_frame_number,
                                                                                          image,
                                                                                          ymin,
                                                                                          xmin,
@@ -1189,10 +1187,10 @@ def visualize_boxes_and_labels_on_single_image_array(current_frame_number,
                     radius=line_thickness / 2,
                     use_normalized_coordinates=use_normalized_coordinates)
 
-    if (1 in is_vehicle_detected):
+    if (1 in is_person_detected):
         counter = 1
-        del is_vehicle_detected[:]
-        is_vehicle_detected = []
+        del is_person_detected[:]
+        is_person_detected = []
         csv_line_util = class_name + "," + csv_line
 
     if (mode == 1):

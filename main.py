@@ -1,27 +1,18 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from collections import deque
 from sklearn.utils.linear_assignment_ import linear_assignment
-
 from utils import helpers
-import detector
-import tracker
+from entities import detector, tracker
 import cv2
 
-frame_count = 0  # frame counter
-
-max_age = 30  # no.of consecutive unmatched detection before
-
+max_age = 30
 min_hits = 2
 
-tracker_list = []  # list for trackers
+tracker_list = []
 track_id_list = deque(['1', '2', '3', '4', '5', '6', '7', '7', '8', '9', '10'])
-
-debug = False
 
 
 def assign_detections_to_trackers(trackers, detections, iou_thrd=0.5):
-
     IOU_mat = np.zeros((len(trackers), len(detections)), dtype=np.float32)
     for t, trk in enumerate(trackers):
         # trk = convert_to_cv2bbox(trk)
@@ -43,11 +34,9 @@ def assign_detections_to_trackers(trackers, detections, iou_thrd=0.5):
             unmatched_detections.append(d)
 
     matches = []
-
     # For creating trackers we consider any detection with an 
     # overlap less than iou_thrd to signifiy the existence of 
     # an untracked object
-
     for m in matched_idx:
         if (IOU_mat[m[0], m[1]] < iou_thrd):
             unmatched_trackers.append(m[0])
@@ -64,26 +53,17 @@ def assign_detections_to_trackers(trackers, detections, iou_thrd=0.5):
 
 
 def pipeline(img):
-    global frame_count, matched, unmatched_dets, unmatched_trks, z_box
+    global matched, unmatched_dets, unmatched_trks, z_box
     global tracker_list
     global max_age
     global min_hits
     global track_id_list
-    global debug
-
-    frame_count += 1
     try:
         z_box = det.get_localization(img)  # measurement
     except:
         pass
 
     x_box = []
-    if debug:
-        for i in range(len(z_box)):
-            img1 = helpers.draw_box_label(img, z_box[i], box_color=(255, 0, 0))
-            plt.imshow(img1)
-        plt.show()
-
     if len(tracker_list) > 0:
         for trk in tracker_list:
             x_box.append(trk.box)
@@ -93,12 +73,6 @@ def pipeline(img):
             = assign_detections_to_trackers(x_box, z_box, iou_thrd=0.3)
     except:
         pass
-    if debug:
-        print('Detection: ', z_box)
-        print('x_box: ', x_box)
-        print('matched:', matched)
-        print('unmatched_det:', unmatched_dets)
-        print('unmatched_trks:', unmatched_trks)
 
     # Deal with matched detections
     if matched.size > 0:
@@ -165,7 +139,7 @@ def pipeline(img):
 
 
 if __name__ == "__main__":
-    output = './input_images_and_videos/pedestrian.mp4'
+    output = './test_data/pedestrian_street.mp4'
     cap = cv2.VideoCapture(output)
     det = detector.PersonDetector()
     det.cap = cap
@@ -179,7 +153,7 @@ if __name__ == "__main__":
         ret, img = cap.read()
         np.asarray(img)
         new_img = pipeline(img)
-        cv2.imshow('detection', new_img)
+        cv2.imshow('PeopleCounter', new_img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
