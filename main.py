@@ -1,8 +1,7 @@
 import numpy as np
 from collections import deque
 from sklearn.utils.linear_assignment_ import linear_assignment
-from utils import helpers
-from entities import detector, tracker
+from entities import detector, tracker, box
 import cv2
 
 max_age = 30
@@ -18,7 +17,7 @@ def assign_detections_to_trackers(trackers, detections, iou_thrd=0.5):
         # trk = convert_to_cv2bbox(trk)
         for d, det in enumerate(detections):
             #   det = convert_to_cv2bbox(det)
-            IOU_mat[t, d] = helpers.box_iou2(trk, det)
+            IOU_mat[t, d] = box.box_iou2(trk, det)
     # Solve the maximizing the sum of IOU assignment problem using the
     # Hungarian algorithm (also known as Munkres algorithm)
 
@@ -126,7 +125,7 @@ def pipeline(img):
         if ((trk.hits >= min_hits) and (trk.no_losses <= max_age)):
             good_tracker_list.append(trk)
             x_cv2 = trk.box
-            img = helpers.draw_box_label(trk.id, img, x_cv2)  # Draw the bounding boxes on the
+            img = box.draw_box_label(trk.id, img, x_cv2)  # Draw the bounding boxes on the
             # images
     # Book keeping
     deleted_tracks = filter(lambda x: x.no_losses > max_age, tracker_list)
