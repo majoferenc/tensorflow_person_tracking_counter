@@ -2,7 +2,10 @@ import numpy as np
 from collections import deque
 from sklearn.utils.linear_assignment_ import linear_assignment
 from entities import detector, tracker, box
+from protos import service_pb2_grpc, service_pb2
 import cv2
+import grpc
+import datetime
 
 max_age = 30
 min_hits = 2
@@ -152,6 +155,19 @@ if __name__ == "__main__":
         ret, img = cap.read()
         np.asarray(img)
         new_img = pipeline(img)
+        try:
+            channel = grpc.insecure_channel('localhost:4040')
+            stub = service_pb2_grpc.DetectionCRUDStub(channel)
+            id = '1'
+            webcam_id = 'cam1'
+            building = 'aupark'
+            person_counter = 3
+            video_stream = cv2.imencode('.jpg', new_img)[1].tobytes()
+            timestamp = datetime.datetime.now().timestamp().__str__()
+            if len(video_stream) != 0:
+                detection = stub.Post(service_pb2.Detection(id=id,webcam_id=webcam_id,building=building,person_counter=person_counter,video_stream=video_stream,timestamp=timestamp))
+        except:
+            pass
         cv2.imshow('PeopleCounter', new_img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

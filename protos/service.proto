@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package proto;
+
+message Detection {
+    string id = 1;
+    string webcam_id = 2;
+    string building = 3;
+    int32 person_counter = 4;
+    bytes video_stream = 5;
+    string timestamp = 6;
+}
+
+message DetectionRequest {
+    string id = 1;
+}
+
+message DetectionResponse {
+    Detection detection = 1;
+}
+
+message DetectionResponseOK {
+    string processed = 1;
+}
+
+service DetectionCRUD {
+    rpc Get(DetectionRequest) returns (DetectionResponse);
+    rpc Post(Detection) returns (DetectionResponseOK);
+}
